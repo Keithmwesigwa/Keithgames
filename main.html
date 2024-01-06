@@ -1,0 +1,1202 @@
+
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>LEGO mobile game</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<link type="text/css" rel="stylesheet" href="main.css">
+		<style>
+			body {
+				color: #ffffff;
+			}
+			a {
+				color: #08f;
+			}
+		@font-face {
+					font-family: 'icon';
+					src: url('resources/fonts/Icon.ttf');
+					font-weight: 500;
+				}
+.sample{
+      position: absolute;
+      right:20px;
+      top:100px;
+      width:100px;
+  height:100px;
+  background-color: #424242;
+ border-radius:50%;
+      
+     
+    }
+#mb{
+  background-color:#212121;
+  width:60px;
+  height:40px;
+  border:none;
+  outline:none;
+  position:absolute;
+  right:10px;
+  top:30px;
+  color:white;
+}
+.ic{
+  font-family:'icon';
+}
+.bcn{
+  width:150px;
+  height:140px;
+  position: absolute;
+  left:20px;
+  top:30px;
+  
+}
+.bt{
+  width:50px;
+  height:50px;
+  border-radius: 50%;
+  border:1px solid #f5f5f5;
+  font-family:Arial;
+  font-size:15px;
+  font-weight: 600;
+}
+#a{
+  position:absolute;
+  top:0px;
+  left:50px;
+}
+#b{
+  position:absolute;
+  left:0px;
+  top:50px;
+}
+#c{
+  position:absolute;
+  right:0px;
+  top:50px;
+}
+#d{
+  position:absolute;
+  bottom:0px;
+  left:50px;
+}
+#msg{
+  position:absolute;
+  
+  
+  border-radius:5px;
+  background-color:white;
+  font-family:Arial;
+  font-size:13px;
+  font-weight:400;
+  
+  
+  color:#212121;
+  padding:5px;
+}
+#lcont{
+  position:absolute;
+  top:0px;
+  left:0px;
+  width:100%;
+  height:100%;
+  background-color: #212121;
+/*background-image: url('cover/cover.jpg'); /* Replace with the actual path to your image */
+           /* background-size: cover; /* Adjust as needed (cover, contain, etc.) */
+           /* background-position: center; /* Adjust as needed */
+           /* height: 300px; /* Set a specific height for your div */
+   
+}
+.pb{
+  position:absolute;
+  top:240px;
+  left:25%;
+  width:50%;
+  height:5px;
+  background-color:#424242;
+  border:1px solid #616161;
+  border-radius:0px;
+}
+.poster{
+  position:absolute;
+  left:25%;
+  top:100px;
+  width:50%;
+  height:100px;
+}
+.poster_image{
+  width:130px;
+  height:130px;
+  border-radius:10px;
+}
+#barfill{
+  position: absolute;
+  top:0px;
+  left:0px;
+  background-color:#4285F4;
+  height:100%;
+  width:0%;
+  border-radius: 0px;
+}
+#percent{
+  position: absolute;
+  left:25%;
+  top:240px;
+  font-size:13px;
+  font-family:Arial;
+  color:#f5f5f5;
+  width:50%;
+  text-align: center;
+}
+#studio{
+  position: absolute;
+  left:25%;
+  top:270px;
+  font-size:13px;
+  font-family:Arial;
+  color:#616161;
+  width:50%;
+  text-align: center;
+}
+    </style>
+  </head>
+  <body>
+ 
+ 
+    
+    <div class="bcn">
+ <button id="a" class="bt">A</button>
+ <button id="b" class="bt">B</button>
+ <button id="c" class="bt">C</button>
+ <button id="d" class="bt">D</button>
+    </div>
+    
+    <div class="sample">
+     
+				<div id="joy1Div" style="width:100px;height:100px;"></div>
+			
+    </div>
+    <p id="msg"></p>
+    <script src="JoyStick-master/joy.js"></script>
+		<div id="container"></div>
+<div id="lcont">
+    <div class="poster">
+      <center>
+        <img src="cover/cover.jpg" class="poster_image" />
+      </center>
+    </div>
+    <div class="pb">
+      <div id="barfill"></div>
+    </div>
+    <p id="percent">Loading...</p>
+    <p id="studio">KGames Studio</p>
+  </div>
+<script src="js/libs/ammo.wasm.js"></script>
+		<script type="x-shader/x-vertex" id="vertexShader">
+
+			varying vec3 vWorldPosition;
+
+			void main() {
+
+				vec4 worldPosition = modelMatrix * vec4( position, 1.0 );
+				vWorldPosition = worldPosition.xyz;
+
+				gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
+
+			}
+			
+
+		</script>
+		<script type="x-shader/x-fragment" id="fragmentShader">
+
+			uniform vec3 topColor;
+			uniform vec3 bottomColor;
+			uniform float offset;
+			uniform float exponent;
+
+			varying vec3 vWorldPosition;
+
+			void main() {
+
+				float h = normalize( vWorldPosition + offset ).y;
+				gl_FragColor = vec4( mix( bottomColor, topColor, max( pow( max( h , 0.0), exponent ), 0.0 ) ), 1.0 );
+
+			}
+
+		</script>
+
+<script>
+	  let simpleNoise = `
+    float N (vec2 st) { // https://thebookofshaders.com/10/
+        return fract( sin( dot( st.xy, vec2(12.9898,78.233 ) ) ) *  43758.5453123);
+    }
+    
+    float smoothNoise( vec2 ip ){ // https://www.youtube.com/watch?v=zXsWftRdsvU
+    	vec2 lv = fract( ip );
+      vec2 id = floor( ip );
+      
+      lv = lv * lv * ( 3. - 2. * lv );
+      
+      float bl = N( id );
+      float br = N( id + vec2( 1, 0 ));
+      float b = mix( bl, br, lv.x );
+      
+      float tl = N( id + vec2( 0, 1 ));
+      float tr = N( id + vec2( 1, 1 ));
+      float t = mix( tl, tr, lv.x );
+      
+      return mix( b, t, lv.y );
+    }
+  `;
+</script>
+
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "../../build/three.module.js",
+    "three/addons/": "../../jsm/",
+"AI/": "../../AI/"
+  }
+}
+</script>
+		<script type="module">
+
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import Stats from 'three/addons/libs/stats.module.js';
+import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
+import { MTLLoader } from 'three/addons/loaders/MTLLoader.js'
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
+import { OBJLoader } from 'three/addons/loaders/OBJLoader.js'
+import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
+  
+import { TextGeometry } from 'three/addons/geometries/TextGeometry.js';
+import { FontLoader } from 'three/addons/src/loaders/FontLoader.js';
+import { CSS3DRenderer, CSS3DObject } from 'three/addons/libs/CSS3DRenderer.js';
+
+
+
+
+			var camera, scene, renderer, dirLight, dirLightHeper, hemiLight, hemiLightHelper;
+			var prev_action=THREE.AnimationAction;
+			let c_action=THREE.AnimationAction;
+			var walk=THREE.AnimationAction;
+			var idle=THREE.AnimationAction;
+       var action=THREE.AnimationAction;
+var action2=THREE.AnimationAction;
+       let mode="normal";   
+       let mixer2;
+var cAnimations=[];
+  
+
+  
+        //guide brick 
+        let gbrick,text,ring,mixern,naction,goldenSphere;
+  
+			// Physics variables
+			let collisionConfiguration;
+			let dispatcher;
+			let broadphase;
+			let solver;
+			let physicsWorld;
+			const dynamicObjects = [];
+			let transformAux1;
+  
+  
+                         let mixer; 
+			var stats;
+let leavesMaterial;
+			var clock = new THREE.Clock();
+
+			init();
+			animate();
+
+function initPhysics() {
+				// Physics configuration
+				collisionConfiguration = new Ammo.btDefaultCollisionConfiguration();
+				dispatcher = new Ammo.btCollisionDispatcher( collisionConfiguration );
+				broadphase = new Ammo.btDbvtBroadphase();
+				solver = new Ammo.btSequentialImpulseConstraintSolver();
+				physicsWorld = new Ammo.btDiscreteDynamicsWorld( dispatcher, broadphase, solver, collisionConfiguration );
+				physicsWorld.setGravity( new Ammo.btVector3( 0, - 6, 0 ) );
+
+				// Create the terrain body
+				const groundShape = createTerrainShape();
+				const groundTransform = new Ammo.btTransform();
+				groundTransform.setIdentity();
+				// Shifts the terrain, since bullet re-centers it on its bounding box.
+				groundTransform.setOrigin( new Ammo.btVector3( 0, ( terrainMaxHeight + terrainMinHeight ) / 2, 0 ) );
+				const groundMass = 0;
+				const groundLocalInertia = new Ammo.btVector3( 0, 0, 0 );
+				const groundMotionState = new Ammo.btDefaultMotionState( groundTransform );
+				const groundBody = new Ammo.btRigidBody( new Ammo.btRigidBodyConstructionInfo( groundMass, groundMotionState, groundShape, groundLocalInertia ) );
+				physicsWorld.addRigidBody( groundBody );
+
+				transformAux1 = new Ammo.btTransform();
+
+			}
+
+			function init() {
+//init physicsWorld
+//initPhysics();
+				var container = document.getElementById( 'container' );
+
+				camera = new THREE.PerspectiveCamera( 30, window.innerWidth / window.innerHeight, 1, 5000 );
+				camera.position.set( 0, 0, 250 );
+camera.lookAt(10,-33,0);
+				scene = new THREE.Scene();
+				scene.background = new THREE.Color().setHSL( 0.6, 0, 1 );
+				scene.fog = new THREE.Fog( scene.background, 1, 5000 );
+
+				// LIGHTS
+ //Add lights to the scene
+const ambientLight = new THREE.AmbientLight(0xffffff,0.65);
+scene.add(ambientLight);
+				hemiLight = new THREE.HemisphereLight( 0xffffff, 0xffffff,0.4);
+				hemiLight.color.setHSL( 0.6, 1, 0.6 );
+				hemiLight.groundColor.setHSL( 0.095, 1, 0.6 );
+				hemiLight.position.set( 0, 50, 0 );
+				scene.add( hemiLight );
+
+				hemiLightHelper = new THREE.HemisphereLightHelper( hemiLight, 10 );
+				//scene.add( hemiLightHelper );
+
+				//
+
+				dirLight = new THREE.DirectionalLight( 0xffffff, 0.5);
+				dirLight.color.setHSL( 0.1, 1, 0.95 );
+				dirLight.position.set( 0,15,-10 );
+				dirLight.position.multiplyScalar( 30 );
+				scene.add( dirLight );
+
+				dirLight.castShadow = true;
+
+				dirLight.shadow.mapSize.width = 2048;
+				dirLight.shadow.mapSize.height = 2048;
+
+				var d = 50;
+
+				dirLight.shadow.camera.left = - d;
+				dirLight.shadow.camera.right = d;
+				dirLight.shadow.camera.top = d;
+				dirLight.shadow.camera.bottom = - d;
+
+				dirLight.shadow.camera.far = 3500;
+				dirLight.shadow.bias = - 0.0001;
+
+				dirLightHeper = new THREE.DirectionalLightHelper( dirLight, 10 );
+				//scene.add( dirLightHeper );
+
+
+				// GROUND
+const textureLoadery = new THREE.TextureLoader();
+				const gt=textureLoadery.load( 'textures/6.png')
+gt.wrapS = THREE.RepeatWrapping; 
+ gt.wrapT = THREE.RepeatWrapping; 
+ gt.repeat.x = 1; 
+ gt.repeat.y = 1; 
+				var groundGeo = new THREE.PlaneBufferGeometry( 10000, 10000,10,1);
+	//groundGeo.rotateX( - Math.PI / 2 );
+				//const avertices = groundGeo.attributes.position.array;
+			//	for ( let i = 0, j = 0, l = avertices.length; i < l; i ++, j += 3 ) {
+				//	avertices[ j + 1 ] = Math.random()*100;
+					//console.log(Math.random())
+
+			//	}
+			
+				//var groundMat = new THREE.MeshLambertMaterial( { color: 0xffffff } );
+var groundMat = new THREE.MeshLambertMaterial( { map: gt } );
+				groundMat.color.setHSL( 0.095, 1, 0.75 );
+
+				var ground = new THREE.Mesh( groundGeo, groundMat );
+				ground.position.y = - 33;
+				ground.rotation.x = - Math.PI / 2;
+				ground.receiveShadow = true;
+				
+      scene.add(ground)
+      
+      
+      
+      
+      
+//grass
+
+
+
+////////////
+// MATERIAL
+////////////
+
+const vertexShader = `
+  varying vec2 vUv;
+  uniform float time;
+  
+  ${simpleNoise}
+  
+	void main() {
+
+    vUv = uv;
+    float t = time * 2.;
+    
+    // VERTEX POSITION
+    
+    vec4 mvPosition = vec4( position, 1.0 );
+    #ifdef USE_INSTANCING
+    	mvPosition = instanceMatrix * mvPosition;
+    #endif
+    
+    // DISPLACEMENT
+    
+    float noise = smoothNoise(mvPosition.xz * 0.5 + vec2(0., t));
+    noise = pow(noise * 0.5 + 0.5, 2.) * 2.;
+    
+    // here the displacement is made stronger on the blades tips.
+    float dispPower = 1. - cos( uv.y * 3.1416 * 0.5 );
+    
+    float displacement = noise * ( 0.3 * dispPower );
+    mvPosition.z -= displacement;
+    
+    //
+    
+    vec4 modelViewPosition = modelViewMatrix * mvPosition;
+    gl_Position = projectionMatrix * modelViewPosition;
+
+	}
+`;
+
+const fragmentShader = `
+  varying vec2 vUv;
+  
+  void main() {
+  	vec3 baseColor = vec3( 0.41, 1.0, 0.5);
+    float clarity = ( vUv.y * 0.875 ) + 0.125;
+    gl_FragColor = vec4( baseColor * clarity, 1 );
+  }
+`;
+
+const uniforms = {
+	time: {
+  	value: 0
+  }
+}
+
+ leavesMaterial = new THREE.ShaderMaterial({
+	vertexShader,
+  fragmentShader,
+  uniforms,
+  side: THREE.DoubleSide
+});
+
+/////////
+// MESH
+/////////
+const instanceNumber = 8000;
+const dummy = new THREE.Object3D();
+const geometry = new THREE.PlaneGeometry( 0.1, 5, 4,4);
+geometry.translate( 0, 0.5, 0 ); // move grass blade geometry lowest point at 0.
+const instancedMesh = new THREE.InstancedMesh( geometry, leavesMaterial, instanceNumber );
+instancedMesh.position.set(10,-33,0)
+//scene.add( instancedMesh );
+// Position and scale the grass blade instances randomly.
+for ( let i=0 ; i<instanceNumber ; i++ ) {
+//this is where i set width and height offset grass patch
+	dummy.position.set(
+  	( Math.random() - 0.5 ) * 10,
+    0,
+    ( Math.random() - 0.5 ) * 10
+  );
+  dummy.scale.setScalar( 0.5 + Math.random() * 0.5 );
+  dummy.rotation.y = Math.random() * Math.PI;
+  dummy.updateMatrix();
+  instancedMesh.setMatrixAt( i, dummy.matrix );
+}
+
+
+
+
+
+
+
+
+
+
+				// SKYDOME
+
+				var vertexShadera = document.getElementById( 'vertexShader' ).textContent;
+				var fragmentShadera = document.getElementById( 'fragmentShader' ).textContent;
+				var uniformsa = {
+					"topColor": { value: new THREE.Color( 0x0077ff ) },
+					"bottomColor": { value: new THREE.Color( 0xffffff ) },
+					"offset": { value: 33 },
+					"exponent": { value: 0.6 }
+				};
+				uniformsa[ "topColor" ].value.copy( hemiLight.color );
+
+				scene.fog.color.copy( uniformsa[ "bottomColor" ].value );
+
+				var skyGeo = new THREE.SphereBufferGeometry( 4000, 32, 15 );
+				var skyMat = new THREE.ShaderMaterial( {
+					uniforms: uniformsa,
+					vertexShader: vertexShadera,
+					fragmentShader: fragmentShadera,
+					side: THREE.BackSide
+				} );
+
+				var sky = new THREE.Mesh( skyGeo, skyMat );
+				scene.add( sky );
+
+				// MODEL
+
+				             // road
+const manager = new THREE.LoadingManager();
+manager.onProgress = ( url, itemsLoaded, itemsTotal ) => {
+var pb=document.getElementById("barfill");
+		var dt=document.getElementById("percent")
+		var w= `${itemsLoaded / itemsTotal * 100 | 0}%`;
+pb.style.width =`${itemsLoaded / itemsTotal * 100 | 0}%`;
+dt.innerHTML="Loading assets..."+w
+
+	};
+
+
+let brick;
+manager.onLoad = onstart;
+
+
+
+// Assuming 'headBone' is the bone associated with the character's head
+//var headBone = yourCharacter.getObjectByName('HeadBoneName');
+
+// Assuming 'hairMesh' is the Three.js mesh for the hair
+//headBone.add(hairMesh);
+
+const fcharacter = new THREE.Object3D();
+const character = new THREE.Object3D();
+const hc = new THREE.Object3D();
+function inu(){
+  
+
+}
+
+
+
+
+             
+
+
+  //MODEL            
+const textureLoader = new THREE.TextureLoader();
+//
+let mm;
+// Load textures for main model
+const parts=["t.png","skin.png","skin.png","cloth.png","cloth.png","l.png","r.png","h.jpg","m.png"]
+const loader = new FBXLoader(manager); 
+loader.load( '/resources/animations/main.fbx', function ( object ) { 
+mm=object;
+
+var i=0
+mm.traverse((child) => {
+    if (child.isMesh) {
+        console.log(i)
+         child.material.map =textureLoader.load("resources/animations/textures/"+parts[i]);
+        i++
+    }
+});
+//load hair material
+const ml = new MTLLoader(manager)
+ml.load( 'resources/animations/hair/b.mtl', function ( materials ) {
+materials.preload();
+//load hair model
+var Hairloader = new OBJLoader(manager);
+Hairloader.setMaterials( materials )
+Hairloader.load('resources/animations/Hair/hair.obj', function (hair) {
+    hair.scale.setScalar(0.9)
+const head = mm.getObjectByName("mixamorigHead");
+hair.position.y += 7;
+    head.add(hair); 
+});
+});
+
+
+
+
+const BrickLoader2 = new GLTFLoader(manager);
+BrickLoader2.load('resources/animations/lego/lb.glb', function (gltf) {
+  gbrick=gltf.scene
+  gbrick.scale.setScalar(1)
+const hand = mm.getObjectByName("mixamorigRightHand");
+gbrick.position.y = -10;
+gbrick.position.x = 87;
+gbrick.position.z = 0;
+
+var degrees = 195;
+var radians = THREE.MathUtils.degToRad(degrees);
+var radians2 = THREE.MathUtils.degToRad(-10);
+console.log(radians)
+gbrick.position.set(0,-25,50)
+//gbrick.rotation.set(radians,0,radians2)
+    scene.add(gbrick); 
+    gbrick.visible=false;
+    //transparent
+gbrick.traverse((child) => {
+    if (child.isMesh) {
+      // Assuming MeshBasicMaterial, adjust for your specific material type
+      child.material.transparent = true;
+      child.material.opacity = 0.5; // Set the opacity value (0 is fully transparent, 1 is fully opaque)
+// Add a blue tint by setting the material color
+  // child.material.color.set(0x1565c0); // Replace with your desired blue color
+//child.material.emissive.set(0x1565c0)
+
+// Assuming you have a mesh called 'yourMesh'
+//child.material.roughness = 0.05; // Adjust the value to make it shinier (lower values)
+
+
+
+
+    }
+  });
+    
+});
+                                         mixer = new THREE.AnimationMixer( mm ); 
+  
+                                         action = mixer.clipAction( mm.animations[ 0 ] ); 
+                                      action.play(); 
+prev_action=action;  
+    c_action="idle";     
+  
+loader.load('resources/animations/idle.fbx',
+           (object) => {
+              console.log("loaded run")
+              idle = mixer.clipAction(object.animations[0]);
+              cAnimations.push(idle)
+           })
+           
+
+    
+    
+    
+    mm.traverse( function ( child ) { 
+  
+                                                 if ( child.isMesh ) { 
+  
+                                                         child.castShadow = true; 
+                                                         child.receiveShadow = true; 
+  
+                                                 } 
+  
+                                         } ); 
+  
+ 
+                   character.add(mm);                
+              scene.add(character);
+character.position.set(0,-33,0)
+  loadAnimations();
+ 
+// add skeleton
+var  skeleton = new THREE.SkeletonHelper( mm);
+  skeleton.visible = true;
+  console.log(skeleton.bones)
+ // scene.add( skeleton );
+  
+
+  
+  
+
+  
+// Ring
+const ringGeometry = new THREE.TorusGeometry(15, 0.5, 16, 100);
+const ringMaterial = new THREE.MeshBasicMaterial({ color: 0x4285F4 });
+ ring = new THREE.Mesh(ringGeometry, ringMaterial);
+scene.add(ring);
+ring.rotation.x = Math.PI / 2;
+ring.position.set(character.position.x,character.position.y,character.position.z)
+  
+
+
+                                 } );
+//load friend
+let mn;
+
+// Load texture2.jpg
+const nparts=["t.png","skin.png","skin.png","skin.png","skin.png","l.png","r.png","h.jpg","m.png"]
+const floader = new FBXLoader(manager); 
+floader.load( '/resources/animations/main.fbx', function ( object ) { 
+mn=object;
+
+var i=0
+mn.traverse((child) => {
+    if (child.isMesh) {
+        console.log(i)
+         child.material.map =textureLoader.load("resources/animations/textures/"+nparts[i]);
+        i++
+    }
+});
+//load hair material
+const mln = new MTLLoader(manager)
+mln.load( 'resources/animations/hair/b.mtl', function ( materials ) {
+materials.preload();
+//load hair model
+var Hairloader = new OBJLoader(manager);
+Hairloader.setMaterials( materials )
+Hairloader.load('resources/animations/Hair/hair.obj', function (hair) {
+    hair.scale.setScalar(0.9)
+const head = mn.getObjectByName("mixamorigHead");
+hair.position.y += 7;
+    head.add(hair); 
+});
+});
+mixer2 = new THREE.AnimationMixer( mn ); 
+ action2 = mixer2.clipAction(mn.animations[0]);
+action2.play(); 
+mn.traverse( function ( child ) {        if ( child.isMesh ) { 
+     child.castShadow = true; 
+     child.receiveShadow = true;           }                                   } ); 
+                   fcharacter.add(mn)
+                   scene.add(fcharacter);
+fcharacter.position.set(0,-33,300)
+});                    
+//ai
+           
+           
+                                 
+                                 
+ let axe;
+const axeLoader = new GLTFLoader(manager);
+axeLoader.load('resources/animations/Tools/axe.glb', function (gltf) {
+   axe=gltf.scene;
+  axe.scale.setScalar(10)
+  axe.position.y+=3
+  axe.rotation.set(1.5,3.5,0)
+const hand = mm.getObjectByName("mixamorigRightHand");
+//hand.add(axe)
+});                 
+
+
+ 
+ 
+ 
+ 
+ 
+ 
+const director = {
+  "data": [
+    {
+      "position": {
+        "x": 10,
+        "y": 10,
+        "z": 200
+      },
+      "lookat": {
+        "x": 10,
+        "y": -33,
+        "z": 0
+      }
+    },
+    {
+      "position": {
+        "x": 50,
+        "y": 10,
+        "z": 200
+      },
+      "lookat": {
+        "x": 50,
+        "y": -33,
+        "z": 0
+      }
+    }
+  ]
+};
+console.log(character.position)
+console.log(fcharacter.position)
+const script=["heyyo","mwana","hhshshshdhhd"]
+var i=0;
+function playScript(){
+  if(script[i]){
+  const line=script[i]
+  const msg=document.getElementById("msg");
+  msg.innerText=line;
+
+
+
+
+    // Update the position of the message div based on the character's position
+    const characterScreenPosition = fcharacter.position.clone().project(camera);
+    const canvas = renderer.domElement;
+    const windowHalfX = window.innerWidth / 2;
+    const windowHalfY = window.innerHeight / 2;
+
+    const x = (characterScreenPosition.x * windowHalfX) + windowHalfX;
+    const y = -(characterScreenPosition.y * windowHalfY) + windowHalfY;
+
+    msg.style.left = `${x}px`;
+    msg.style.top = `${y}px`;
+
+
+
+
+
+
+
+
+     i++;
+     setTimeout(playScript,4000)
+    }
+   }
+   
+   
+   //egypt
+// Create a golden material
+const goldenMaterial = new THREE.MeshPhongMaterial({
+  color: 0xFFD700,  // Golden color
+  shininess: 100,   // Adjust shininess for a shiny effect
+});
+// Create a reflective material
+const reflectiveMaterial = new THREE.MeshStandardMaterial({
+  color: 0xFFD700,  // Golden color
+  metalness: 1,     // Reflective like metal
+  roughness: 0.1,   // Smooth surface
+});
+
+// Create a sphere with the golden material
+const sphereGeometry = new THREE.SphereGeometry(8, 32, 32);
+ goldenSphere = new THREE.Mesh(sphereGeometry, goldenMaterial);
+scene.add(goldenSphere);
+goldenSphere.position.set(0,-23,350)
+   
+   
+   
+   
+   
+   
+   
+                                 
+                                 
+var Param={"internalFillColor":"#ffffff","internalStrokeColor":"#ffffff","externalStrokeColor":"#bdbdbd"};
+var Para={}
+var Joy1 = new JoyStick('joy1Div',Param,function(stickData) {
+     var px= stickData.xPosition;
+    var py = stickData.yPosition;
+   var  cd= stickData.cardinalDirection;
+    var xd = stickData.x;
+   var yd = stickData.y;
+  
+
+
+
+// Set translation based on joystickY
+const translationSpeed = 0.04;
+const moveDirection = new THREE.Vector3(0, 0, yd).applyQuaternion(character.quaternion);
+const newTranslationZ = moveDirection.z * translationSpeed;
+character.translateZ(newTranslationZ);
+//update character ring
+ring.position.set(character.position.x,character.position.y,character.position.z)
+//checkProximity
+checkProximity()
+
+// Adjust rotation to face backward when moving backward
+if (yd < 0) {
+// Set rotation based on joystickX
+const rotationSpeed = 0.01;
+const newRotation = xd * rotationSpeed;
+character.rotation.y = newRotation;
+    character.rotation.y += Math.PI; // Rotate 180 degrees when moving backward
+    //translateZ
+uc(newTranslationZ);
+}
+else if(yd>0){
+// Set rotation based on joystickX
+const rotationSpeed = 0.01;
+const newRotation = xd * rotationSpeed;
+character.rotation.y = -newRotation;
+uc(-newTranslationZ);
+}
+
+
+    
+   
+    if(c_action=="walk"){
+    }
+    else{
+      forward();
+    }
+    
+    if(cd=="C")
+    {
+      stand();
+    }
+   
+   
+    
+    
+});
+function checkProximity() {
+    const characterPosition = character.position;
+    const spherePosition = goldenSphere.position;
+
+    // Calculate the distance between the character and the sphere
+    const distance = characterPosition.distanceTo(spherePosition);
+
+    // Define a proximity threshold, adjust as needed
+    const proximityThreshold = 30;
+
+    // Check if the character is near the sphere
+    if (distance < proximityThreshold) {
+     console.log("close")
+     msg.style.visibility="visible"
+        // Call your function here
+msg.innerHTML="<p>Press <font style='color:green;'>B</font> to capture the golden crystal dome</p>";
+    // Update the position of the message div based on the character's position
+    const characterScreenPosition = character.position.clone().project(camera);
+    const canvas = renderer.domElement;
+    const windowHalfX = window.innerWidth / 2;
+    const windowHalfY = window.innerHeight / 2;
+
+    const x = (characterScreenPosition.x * windowHalfX) + windowHalfX;
+    const y = -(characterScreenPosition.y * windowHalfY) + windowHalfY;
+
+    msg.style.left = `${x}px`;
+    msg.style.top = `${y}px`;
+    
+    //button
+const bButton = document.getElementById('a');
+// Add a touch event listener to the button
+bButton.addEventListener('touchstart', function(event) {
+    
+});
+    
+    }
+    else{
+      msg.style.visibility="hidden"
+    }
+}
+function onstart(){
+  var cont=document.getElementById("lcont")
+  cont.style.visibility="hidden";
+playScript();
+}
+const myButton = document.getElementById('c');
+// Add a touch event listener to the button
+myButton.addEventListener('touchstart', function(event) {
+    // Your code to handle the touch event goes here
+    console.log('Button touched!');
+if(mode=="normal"){
+  mode="build"
+  gbrick.visible=true;
+  }
+  else{
+    mode="normal"
+    gbrick.visible=false;
+  }
+});
+const dButton = document.getElementById('d');
+// Add a touch event listener to the button
+dButton.addEventListener('touchstart', function(event) {
+jump();
+});
+const aButton = document.getElementById('a');
+// Add a touch event listener to the button
+aButton.addEventListener('touchstart', function(event) {
+    // Your code to handle the touch event goes here
+    console.log('Button touched!');
+if(mode=="normal"){
+  }
+  else{
+const newBrick = gbrick.clone();
+scene.add(newBrick)
+newBrick.traverse((child) => {
+    if (child.isMesh) {
+child.material = child.material.clone();
+      // Assuming MeshBasicMaterial, adjust for your specific material type
+      child.material.transparent = true;
+      child.material.opacity = 1; // Set the opacity value (0 is fully transparent, 1 is fully opaque)
+// Add a blue tint by setting the material color
+   //child.material.color.set(0x795548); // Replace with your desired blue color
+//child.material.emissive.set(0x795548)
+    }
+  });
+  }
+});
+
+
+
+
+
+
+
+function uc(translation) {
+  const distance = 600; // Set the distance between the character and the camera
+  const yOffset = 70; // Set the height offset of the camera
+
+  const characterPos = character.position.clone();
+const characterR = character.rotation.clone();
+  const direction = character.getWorldDirection(new THREE.Vector3());
+
+  // Calculate the new camera position
+  const cameraPos = characterPos.clone().addScaledVector(direction, -distance).add(new THREE.Vector3(0, yOffset,0));
+  
+
+
+// Set only the camera position without changing its orientation
+//camera.position.copy(cameraPos);
+
+// Make the camera look at the character, maintaining its current rotation
+//camera.lookAt(characterPos.x, camera.position.y, characterPos.z);
+
+  
+
+
+  
+  
+//const cameraPos = characterPos.clone().addScaledVector(new THREE.Vector3(direction.z, 0, -direction.x), distance).add(new THREE.Vector3(0, yOffset, 0));
+
+  // Set the camera position
+//  camera.position.copy(cameraPos);
+
+  // Make the camera look at the character
+ // camera.lookAt(characterPos);
+ 
+ 
+ 
+// Copy the character's position to the camera, ignoring rotation
+ //   camera.position.copy(character.position);
+
+    // Adjust the camera's position or orientation as needed
+    // For example, to keep a fixed distance from the character along the z-axis
+   // camera.translateZ(translation);
+//camera.position.y=0
+    // Look at the character (optional)
+   //camera.lookAt(character.position);
+ 
+ 
+ 
+ 
+ 
+ 
+}
+
+function loadAnimations(){
+loader.load('resources/animations/run.fbx',
+           (object) => {
+              
+              const walk = mixer.clipAction(object.animations[0]);
+               cAnimations.push(walk)
+           })
+loader.load('resources/animations/jump.fbx',
+           (object) => {
+              
+              const jump = mixer.clipAction(object.animations[0]);
+               cAnimations.push(jump)
+           })
+}
+
+function stand()   
+     {
+       
+ const anim=cAnimations[0]
+//anim.crossFadeFrom(prev_action,0.4,true);
+           //  anim.play()
+//prev_action=anim;
+//c_action="idle";
+           
+       
+       
+       
+      // console.log(idle)
+//idle.crossFadeFrom(prev_action,0.1,true);
+//prev_action.crossFadeTo(prev_action,0.2,true)
+//mixer.stopAllAction();
+prev_action.fadeOut(0.5)
+   idle.play();
+   idle.reset();
+   prev_action=idle;
+   c_action="idle";
+       }
+function forward()   
+     {
+      
+const anim=cAnimations[1]
+anim.crossFadeFrom(prev_action,0.4,true);
+//prev_action.fadeOut(0.5)
+              anim.play();
+             anim.reset();
+prev_action=anim;
+c_action="walk";
+       }
+function jump()   
+     {
+      
+const anim=cAnimations[2]
+//anim.crossFadeFrom(prev_action,0.4,true);
+prev_action.fadeOut(0.5)
+console.log(anim)
+              anim.play();
+            anim.reset();
+prev_action=anim;
+c_action="jump";
+       }
+				// RENDERER
+//var renderer = new THREE.CSS3DRenderer();
+				renderer = new THREE.WebGLRenderer( { antialias: true } );
+				renderer.setPixelRatio( window.devicePixelRatio );
+				renderer.setSize( window.innerWidth, window.innerHeight );
+				container.appendChild( renderer.domElement );
+const controls = new OrbitControls( camera, renderer.domElement ); 
+                                 //controls.target.set( 0, 100, 0 ); 
+                                 //controls.update(); 
+
+				renderer.gammaInput = true;
+				renderer.gammaOutput = true;
+
+				renderer.shadowMap.enabled = true;
+
+				// STATS
+
+				stats = new Stats();
+				container.appendChild( stats.dom );
+
+				//
+				
+
+				window.addEventListener( 'resize', onWindowResize, false );
+
+				
+
+			}
+
+			function onWindowResize() {
+
+				camera.aspect = window.innerWidth / window.innerHeight;
+				camera.updateProjectionMatrix();
+
+				renderer.setSize( window.innerWidth, window.innerHeight );
+
+			}
+
+			//
+
+			function animate() {
+
+				requestAnimationFrame( animate );
+
+				render();
+				stats.update();
+
+			}
+
+			function render() {
+
+				var delta = clock.getDelta();
+	// Hand a time variable to vertex shader for wind displacement.
+	leavesMaterial.uniforms.time.value = clock.getElapsedTime();
+  leavesMaterial.uniformsNeedUpdate = true;
+                                 if ( mixer2 ) mixer2.update( delta ); 
+  
+                                 if ( mixer ) mixer.update( delta ); 
+				renderer.render( scene, camera );
+
+			}
+
+		</script>
+	</body>
+</html>
